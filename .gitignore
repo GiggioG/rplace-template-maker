@@ -2,3 +2,6 @@ node_modules
 _temp
 lastUpdated
 .env
+coords
+raws
+templateList.json

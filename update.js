@@ -14,7 +14,8 @@ templates.forEach(t => {
         console.log(`${t} is new - uploading`);
         let [x, y] = String(fs.readFileSync(`./coords/${t}.txt`)).split(",");
         transformImage(t);
-        let req_t = http.request(`http://${host}/upload?imgname=${t}&x=${x}&y=${y}`, {
+
+        let req_upload = http.request(`http://${host}/upload?imgname=${t}&x=${x}&y=${y}`, {
             method: "POST",
             headers: {
                 "Content-Type": "image/png",
@@ -22,7 +23,19 @@ templates.forEach(t => {
             }
         });
         let readStream = fs.createReadStream(`./_temp/${t}.template.png`);
-        readStream.pipe(req_t);
+        readStream.pipe(req_upload);
+        req_upload.on("response", () => {
+            let req_changeThumb = http.request(`http://${host}/changeThumb?imgname=${t}`, {
+                method: "PATCH",
+                headers: {
+                    "Content-Type": "image/png",
+                    "auth": process.env.PASSWORD
+                }
+            });
+            let readStream2 = fs.createReadStream(`./_temp/${t}.colored.png`);
+            readStream2.pipe(req_changeThumb);
+        });
+
         fs.writeFileSync(`./lastUpdated/${t}.coords.txt`, stamp);
         fs.writeFileSync(`./lastUpdated/${t}.image.txt`, stamp);
     }
@@ -40,7 +53,7 @@ function updateCoords(t) {
     fs.writeFileSync(`./lastUpdated/${t}.coords.txt`, stamp);
 }
 
-function transformImage(img){
+function transformImage(img) {
     if (!fs.existsSync("./_temp")) { fs.mkdirSync("./_temp"); }
     execSync(`python color.py ./raws/${img}.png ./_temp/${img}.colored.png`);
     execSync(`python expand.py ./_temp/${img}.colored.png ./_temp/${img}.template.png`);

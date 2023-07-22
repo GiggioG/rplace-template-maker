@@ -13,9 +13,10 @@ templates.forEach(t => {
     if (!fs.existsSync(`./lastUpdated/${t}.coords.txt`)) {
         console.log(`${t} is new - uploading`);
         let [x, y] = String(fs.readFileSync(`./coords/${t}.txt`)).split(",").map(e => Number(e));
+        let priority = Number(String(fs.readFileSync(`./priorities/${t}.txt`)));
         transformImage(t);
 
-        let req_upload = http.request(`http://${host}/upload?imgname=${t}&x=${x}&y=${y}`, {
+        let req_upload = http.request(`http://${host}/upload?imgname=${t}&x=${x}&y=${y}&priority=${priority}`, {
             method: "POST",
             headers: {
                 "Content-Type": "image/png",
@@ -38,6 +39,7 @@ templates.forEach(t => {
 
         fs.writeFileSync(`./lastUpdated/${t}.coords.txt`, stamp);
         fs.writeFileSync(`./lastUpdated/${t}.image.txt`, stamp);
+        fs.writeFileSync(`./lastUpdated/${t}.priority.txt`, stamp);
     }
 });
 
@@ -51,6 +53,18 @@ function updateCoords(t) {
         }
     }).end();
     fs.writeFileSync(`./lastUpdated/${t}.coords.txt`, stamp);
+}
+
+function updatePriority(t){
+    console.log(`Updating priority for ${t}`);
+    let priority = Number(String(fs.readFileSync(`./priorities/${t}.txt`)));
+    http.request(`http://${host}/priority?imgname=${t}&priority=${priority}`, {
+        method: "PATCH",
+        headers: {
+            "auth": process.env.PASSWORD
+        }
+    }).end();
+    fs.writeFileSync(`./lastUpdated/${t}.priority.txt`, stamp);
 }
 
 function transformImage(img) {
@@ -90,6 +104,11 @@ templates.forEach(t => {
     let coordMTime = Number(fs.statSync(`./coords/${t}.txt`).mtime);
     let coordLastUpdate = Number(fs.readFileSync(`./lastUpdated/${t}.coords.txt`));
     if (coordLastUpdate < coordMTime) { updateCoords(t); }
+
+    /// PRIORITY
+    let priorityMTime = Number(fs.statSync(`./priorities/${t}.txt`).mtime);
+    let priorityLastUpdate = Number(fs.readFileSync(`./lastUpdated/${t}.priority.txt`));
+    if (priorityLastUpdate < priorityMTime) { updatePriority(t); }
 
     /// IMAGE
     let imgMTime = Number(fs.statSync(`./raws/${t}.png`).mtime);

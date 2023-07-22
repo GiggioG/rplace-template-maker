@@ -12,7 +12,7 @@ if (!fs.existsSync("./lastUpdated")) { fs.mkdirSync("./lastUpdated"); }
 templates.forEach(t => {
     if (!fs.existsSync(`./lastUpdated/${t}.coords.txt`)) {
         console.log(`${t} is new - uploading`);
-        let [x, y] = String(fs.readFileSync(`./coords/${t}.txt`)).split(",").map(e=>Number(e)+500);
+        let [x, y] = String(fs.readFileSync(`./coords/${t}.txt`)).split(",").map(e => Number(e));
         transformImage(t);
 
         let req_upload = http.request(`http://${host}/upload?imgname=${t}&x=${x}&y=${y}`, {
@@ -43,7 +43,7 @@ templates.forEach(t => {
 
 function updateCoords(t) {
     console.log(`Updating coords for ${t}`);
-    let [x, y] = String(fs.readFileSync(`./coords/${t}.txt`)).split(",").map(e=>Number(e)+500);
+    let [x, y] = String(fs.readFileSync(`./coords/${t}.txt`)).split(",").map(e => Number(e));
     http.request(`http://${host}/move?imgname=${t}&x=${x}&y=${y}`, {
         method: "PATCH",
         headers: {
@@ -62,7 +62,7 @@ function transformImage(img) {
 function updateImage(t) {
     console.log(`Updating image for ${t}`);
     transformImage(t);
-    let req_t = http.request(`http://${host}/edit?imgname=${t}`, {
+    let req_edit = http.request(`http://${host}/edit?imgname=${t}`, {
         method: "PATCH",
         headers: {
             "Content-Type": "image/png",
@@ -70,8 +70,8 @@ function updateImage(t) {
         }
     });
     let readStream = fs.createReadStream(`./_temp/${t}.template.png`);
-    readStream.pipe(req_t);
-    req_upload.on("response", () => {
+    readStream.pipe(req_edit);
+    req_edit.on("response", () => {
         let req_changeThumb = http.request(`http://${host}/changeThumb?imgname=${t}`, {
             method: "PATCH",
             headers: {
